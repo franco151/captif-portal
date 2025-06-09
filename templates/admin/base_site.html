@@ -1,0 +1,16 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/admin_custom.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/payments.css' %}">
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">Administration BestConnect by Franco Fanazava</a></h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %} 

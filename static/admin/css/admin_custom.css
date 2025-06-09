@@ -1,0 +1,319 @@
+/* Styles généraux pour l'interface d'administration */
+:root {
+    /* Variables pour le thème clair */
+    --primary-color: #417690;
+    --secondary-color: #79aec8;
+    --success-color: #28a745;
+    --info-color: #17a2b8;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --header-bg: var(--primary-color);
+    --header-link-color: #fff;
+    --header-link-hover-color: #fff;
+    --header-link-hover-bg: var(--secondary-color);
+    --module-bg: #fff;
+    --module-border: #ddd;
+    --module-hover-bg: var(--light-color);
+    --module-header-bg: var(--primary-color);
+    --module-header-color: #fff;
+    --body-bg: #fff;
+    --border-color: #ddd;
+    --selected-row: #f0f0f0;
+    --button-bg: var(--primary-color);
+    --button-fg: #fff;
+    --button-hover-bg: var(--secondary-color);
+    --link-fg: #007bff;
+    --link-hover-color: #0056b3;
+    --message-success-bg: #dff0d8;
+    --message-success-fg: #468847;
+}
+
+/* Style pour le menu de gauche */
+#header {
+    background: var(--header-bg);
+    color: var(--header-link-color);
+    padding: 0;
+    margin: 0;
+}
+
+#branding h1 {
+    font-weight: 600;
+    margin: 0;
+    padding: 10px 20px;
+}
+
+/* Style pour les modules */
+.module {
+    margin-bottom: 20px;
+    background: var(--body-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 15px;
+}
+
+.module h2, .module caption {
+    background: var(--header-bg);
+    color: var(--header-link-color);
+    font-weight: 500;
+    padding: 12px 15px;
+    margin: -15px -15px 15px -15px;
+    border-radius: 4px 4px 0 0;
+}
+
+/* Style pour les tableaux */
+#changelist table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0;
+}
+
+#changelist table thead th {
+    background: var(--header-bg);
+    color: var(--header-link-color);
+    font-weight: 500;
+    padding: 12px;
+    text-align: left;
+    border: none;
+}
+
+#changelist table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+#changelist table tbody tr:hover {
+    background-color: var(--selected-row);
+}
+
+#changelist table td {
+    padding: 12px;
+    vertical-align: middle;
+    color: var(--body-fg);
+}
+
+/* Style pour les graphiques */
+.chart-container {
+    background: var(--body-bg);
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    height: 400px;
+    border: 1px solid var(--border-color);
+}
+
+.chart-container h3 {
+    margin: 0 0 20px 0;
+    color: var(--header-link-color);
+    font-size: 1.2em;
+    text-align: center;
+}
+
+.chart-canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* Style pour les statistiques */
+.stats-container {
+    padding: 20px;
+    background: var(--body-bg);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.stats-section {
+    margin-bottom: 20px;
+}
+
+.stats-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Style pour les tableaux de statistiques */
+.table-responsive {
+    overflow-x: auto;
+    background: var(--body-bg);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    border: 1px solid var(--border-color);
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stats-table thead th {
+    background: var(--header-bg);
+    color: var(--header-link-color);
+    padding: 12px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.stats-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.stats-table tbody tr:hover {
+    background-color: var(--selected-row);
+}
+
+.stats-table td {
+    padding: 12px;
+    vertical-align: middle;
+    color: var(--body-fg);
+}
+
+/* Style pour les boutons et actions */
+.button, input[type=submit], input[type=button], .submit-row input {
+    background: var(--button-bg);
+    color: var(--button-fg);
+    border-radius: 4px;
+    padding: 8px 15px;
+    border: none;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button:hover, input[type=submit]:hover, input[type=button]:hover {
+    background: var(--button-hover-bg);
+}
+
+/* Style pour les liens */
+.addlink, .changelink, .deletelink, .viewlink, .printlink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9em;
+    margin: 0 5px;
+    transition: all 0.2s;
+    color: var(--link-fg);
+}
+
+.addlink:hover, .changelink:hover, .deletelink:hover, .viewlink:hover, .printlink:hover {
+    color: var(--link-hover-color);
+}
+
+/* Style pour les messages */
+.messagelist {
+    margin: 0 0 20px 0;
+    padding: 0;
+    list-style: none;
+}
+
+.messagelist li {
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    background: var(--message-success-bg);
+    color: var(--message-success-fg);
+}
+
+/* Style pour les formulaires */
+.form-row {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.form-row:last-child {
+    border-bottom: none;
+}
+
+.form-row label {
+    font-weight: 500;
+    color: var(--body-fg);
+    display: block;
+    margin-bottom: 5px;
+}
+
+/* Style pour les filtres */
+#changelist-filter {
+    background: var(--body-bg);
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    padding: 15px;
+    border: 1px solid var(--border-color);
+}
+
+#changelist-filter h2 {
+    background: var(--header-bg);
+    color: var(--header-link-color);
+    font-weight: 500;
+    padding: 10px;
+    margin: -15px -15px 15px -15px;
+    border-radius: 4px 4px 0 0;
+}
+
+/* Style pour la pagination */
+.paginator {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.paginator a:link, .paginator a:visited {
+    background: var(--button-bg);
+    color: var(--button-fg);
+    padding: 5px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    margin: 0 2px;
+}
+
+.paginator a:hover {
+    background: var(--button-hover-bg);
+}
+
+/* Ajustements responsifs */
+@media screen and (max-width: 992px) {
+    .chart-container {
+        height: 300px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .chart-container {
+        height: 250px;
+    }
+    
+    .stats-table thead th,
+    .stats-table td {
+        padding: 8px;
+        font-size: 0.9em;
+    }
+}
+
+@media print {
+    .watermark {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1000;
+    }
+    
+    .watermark::before {
+        content: "BestConnect";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        font-size: 100px;
+        color: rgba(0, 0, 0, 0.1);
+        white-space: nowrap;
+    }
+} 

@@ -1,0 +1,65 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls %}
+{% load humanize %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    @media print {
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 72px;
+            color: rgba(65, 118, 144, 0.15);
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .watermark::before {
+            content: "BEST CONNECT";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="watermark"></div>
+<div class="receipt-container">
+    <h1>Reçu de Paiement</h1>
+    <h2>Date: {{ date|date:"d/m/Y" }}</h2>
+    
+    <table class="receipt-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Nombre de paiements</th>
+                <th>Montant total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for day in daily_stats %}
+            <tr>
+                <td>{{ day.day|date:"d/m/Y" }}</td>
+                <td>{{ day.count|intcomma }}</td>
+                <td>{{ day.total_amount|intcomma }} Ar</td>
+            </tr>
+            {% endfor %}
+            <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td><strong>{{ total_payments|intcomma }}</strong></td>
+                <td><strong>{{ total_amount|intcomma }} Ar</strong></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %} 

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Reçu de paiement</title>
+    {% load humanize %}
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 12pt;
+            line-height: 1.4;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+        }
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 72px;
+            color: rgba(65, 118, 144, 0.15);
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .watermark::before {
+            content: "BEST CONNECT";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-top: 20px;
+        }
+        .header h1 {
+            font-size: 24pt;
+            margin: 0;
+            padding: 0;
+        }
+        .receipt-info {
+            margin-bottom: 15px;
+        }
+        .customer-info {
+            margin-bottom: 15px;
+        }
+        .payment-details {
+            margin-bottom: 15px;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10pt;
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 11pt;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        .qr-code {
+            text-align: center;
+            margin: 20px 0;
+            page-break-inside: avoid;
+        }
+        .qr-code img {
+            max-width: 150px;
+            height: auto;
+        }
+        @media print {
+            body {
+                width: 100%;
+                height: 100%;
+            }
+            .watermark {
+                display: block;
+            }
+            .footer {
+                position: fixed;
+                bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark"></div>
+    <div class="header">
+        <h1>Reçu de Paiement</h1>
+        <p>BestConnect - Portail Captif</p>
+    </div>
+
+    <div class="receipt-info">
+        <p><strong>Numéro de reçu:</strong> {{ payment.receipt_number }}</p>
+        <p><strong>Date:</strong> {{ payment.payment_date|naturaltime }}</p>
+    </div>
+
+    <div class="customer-info">
+        <h2>Informations Client</h2>
+        <p><strong>Nom d'utilisateur:</strong> {{ user.username }}</p>
+        <p><strong>Email:</strong> {{ user.email }}</p>
+        <p><strong>Téléphone:</strong> {{ user.phone_number }}</p>
+    </div>
+
+    <div class="payment-details">
+        <h2>Détails du Paiement</h2>
+        <table>
+            <tr>
+                <th>Description</th>
+                <th>Détails</th>
+            </tr>
+            <tr>
+                <td>Forfait</td>
+                <td>{{ subscription.plan.name }}</td>
+            </tr>
+            <tr>
+                <td>Durée</td>
+                <td>{{ subscription.plan.duration }} {{ subscription.plan.get_duration_unit_display }}</td>
+            </tr>
+            <tr>
+                <td>Montant</td>
+                <td>{{ payment.amount|intcomma }} Ar</td>
+            </tr>
+            <tr>
+                <td>Méthode de paiement</td>
+                <td>{{ payment.get_payment_method_display }}</td>
+            </tr>
+            <tr>
+                <td>Statut</td>
+                <td>{{ payment.get_status_display }}</td>
+            </tr>
+        </table>
+    </div>
+
+    {% if payment.wificredentials %}
+    <div class="qr-code">
+        <h2>QR Code pour la connexion WiFi</h2>
+        <img src="data:image/png;base64,{{ payment.wificredentials.qr_code }}" alt="QR Code WiFi">
+        <p>Scannez ce QR code pour vous connecter automatiquement au réseau WiFi</p>
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        <p>Merci de votre confiance !</p>
+        <p>BestConnect - Votre connexion internet de confiance</p>
+        <p>Contact: 0347249715</p>
+    </div>
+</body>
+</html> 

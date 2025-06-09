@@ -1,0 +1,137 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reçu d'abonnement - {{ subscription.id }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .receipt {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #417690;
+            padding-bottom: 20px;
+        }
+        .logo {
+            max-width: 200px;
+            margin-bottom: 10px;
+        }
+        .details {
+            margin: 20px 0;
+        }
+        .details table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details th, .details td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        .details th {
+            background-color: #f5f5f5;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .qr-code {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .qr-code img {
+            max-width: 200px;
+            height: auto;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .receipt {
+                box-shadow: none;
+                border: none;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="header">
+            <img src="{% static 'img/logo.png' %}" alt="BestConnect Logo" class="logo">
+            <h1>Reçu d'abonnement</h1>
+        </div>
+
+        <div class="details">
+            <table>
+                <tr>
+                    <th>Numéro de reçu</th>
+                    <td>{{ subscription.id }}</td>
+                </tr>
+                <tr>
+                    <th>Date</th>
+                    <td>{{ subscription.created_at|date:"d/m/Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <th>Client</th>
+                    <td>{{ user.get_full_name|default:user.username }}</td>
+                </tr>
+                <tr>
+                    <th>Email</th>
+                    <td>{{ user.email }}</td>
+                </tr>
+                <tr>
+                    <th>Plan</th>
+                    <td>{{ plan.name }}</td>
+                </tr>
+                <tr>
+                    <th>Prix</th>
+                    <td>{{ plan.price }} €</td>
+                </tr>
+                <tr>
+                    <th>Statut</th>
+                    <td>{{ subscription.get_status_display }}</td>
+                </tr>
+                <tr>
+                    <th>Date de début</th>
+                    <td>{{ subscription.start_date|date:"d/m/Y H:i" }}</td>
+                </tr>
+                <tr>
+                    <th>Date de fin</th>
+                    <td>{{ subscription.end_date|date:"d/m/Y H:i" }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="qr-code">
+            <img src="{% static 'qr_codes/qr_code_'|add:user.username|add:'_'|add:subscription.id|add:'.png' %}" alt="QR Code">
+        </div>
+
+        <div class="footer">
+            <p>Merci de votre confiance !</p>
+            <p>BestConnect - Votre partenaire connectivité</p>
+        </div>
+
+        <div class="no-print" style="text-align: center; margin-top: 20px;">
+            <button onclick="window.print()">Imprimer le reçu</button>
+        </div>
+    </div>
+</body>
+</html> 

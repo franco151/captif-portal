@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Reçus de paiement du {{ date|date:"d/m/Y" }}</title>
+    {% load humanize %}
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #333;
+            margin-bottom: 50mm; /* Espace pour le pied de page */
+        }
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 60pt;
+            color: rgba(65, 118, 144, 0.08); /* Bleu BestConnect très transparent */
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: -1000;
+            opacity: 0.5;
+        }
+        .watermark::before {
+            content: "BestConnect by Franco Fanazava"; /* Texte du filigrane */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20mm;
+            border-bottom: 2px solid #417690;
+            padding-bottom: 10mm;
+        }
+        .header h1 {
+            color: #417690;
+            font-size: 28pt;
+            margin: 0 0 5pt 0;
+        }
+        .header h2 {
+            font-size: 16pt;
+            margin: 0;
+            color: #555;
+        }
+        .summary-table {
+            width: 70%; /* Ajusté pour inclure les modes de paiement */
+            margin: 0 auto 15mm auto;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+        }
+        .summary-table th, .summary-table td {
+            border: 1px solid #ddd;
+            padding: 8px 12px; /* Ajusté le padding */
+            text-align: left;
+        }
+        .summary-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            color: #333;
+        }
+        .summary-table td strong {
+            font-weight: bold;
+        }
+        .receipt-details {
+            margin-bottom: 15mm;
+            border: 1px solid #ddd;
+            padding: 15px; /* Ajusté le padding */
+            page-break-inside: avoid;
+            background-color: #fff; /* Fond blanc pour chaque reçu */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Ombre légère */
+            border-radius: 5px; /* Coins arrondis */
+        }
+        .receipt-details:last-child {
+            margin-bottom: 0;
+        }
+        .receipt-details table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0;
+        }
+         .receipt-details table th, .receipt-details table td {
+            border: none;
+            padding: 6px 10px; /* Ajusté le padding */
+            text-align: left;
+            font-size: 9pt; /* Taille de police légèrement réduite */
+        }
+        .receipt-details table tr th {
+            font-weight: bold;
+            width: 35%; /* Ajusté la largeur de la première colonne */
+            color: #555;
+        }
+        .receipt-details table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .receipt-details h3 {
+            font-size: 14pt;
+            margin: 0 0 10px 0;
+            color: #417690;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .footer {
+            position: fixed;
+            bottom: 20mm;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 8pt;
+            color: #555;
+            border-top: 1px solid #eee;
+            padding-top: 10mm;
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark"></div>
+    
+    <div class="header">
+        <h1>BestConnect</h1>
+        <h2>Reçus de paiement du {{ date|date:"d/m/Y" }}</h2>
+    </div>
+
+    <table class="summary-table">
+        <tr>
+            <th>Nombre total de paiements</th>
+            <td>{{ total_payments_count|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>Montant total</th>
+            <td>{{ total_amount|intcomma }} Ar</td>
+        </tr>
+        {% for method in payment_method_counts %}
+        <tr>
+            <th>Effectif {{ method.payment_method|lower|capfirst }}</th>
+            <td>{{ method.count|intcomma }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% for payment in payments %}
+    <div class="receipt-details">
+        {# <h3>Reçu #{{ forloop.counter }}</h3> #} {# Optionnel: titre pour chaque reçu #}
+        <table>
+            <tr>
+                <th>Numéro de reçu</th>
+                <td>{{ payment.receipt_number }}</td>
+            </tr>
+            <tr>
+                <th>Utilisateur</th>
+                <td>{{ payment.user.username }}</td>
+            </tr>
+            <tr>
+                <th>Forfait</th>
+                <td>{{ payment.plan.name }}</td>
+            </tr>
+            <tr>
+                <th>Montant</th>
+                <td>{{ payment.amount|intcomma }} Ar</td>
+            </tr>
+            <tr>
+                <th>Méthode de paiement</th>
+                <td>{{ payment.get_payment_method_display }}</td>
+            </tr>
+            <tr>
+                <th>Statut</th>
+                <td>{{ payment.get_status_display }}</td>
+            </tr>
+            <tr>
+                <th>Date et Heure</th>
+                <td>{{ payment.payment_date|date:"d/m/Y H:i" }}</td>
+            </tr>
+        </table>
+    </div>
+    {% endfor %}
+
+    <div class="footer">
+        <p>
+            Document généré le {{ generation_datetime|date:"d/m/Y à H:i" }}. 
+            Cette document est confidentiel à ne pas partager sauf à Franco Fanazava.
+        </p>
+    </div>
+</body>
+</html> 

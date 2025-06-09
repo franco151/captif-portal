@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Portail Captif - BestConnect{% endblock %}
+
+{% block extra_css %}
+<style>
+    .portal-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+
+    .portal-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .portal-logo {
+        max-width: 200px;
+        margin-bottom: 20px;
+    }
+
+    .portal-form {
+        background-color: var(--card-background);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-color);
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background-color: var(--background-color);
+        color: var(--text-color);
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 12px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-submit:hover {
+        background-color: var(--hover-color);
+    }
+
+    .error-message {
+        color: #dc3545;
+        margin-top: 5px;
+        font-size: 14px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="portal-container">
+    <div class="portal-header">
+        <img src="{% static 'images/logo.png' %}" alt="BestConnect Logo" class="portal-logo">
+        <h1>Bienvenue sur le Portail Captif</h1>
+    </div>
+    
+    <div class="portal-form">
+        {% block portal_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %} 

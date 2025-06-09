@@ -1,0 +1,1 @@
+// Ce fichier est supprimé car nous utilisons la gestion de thème de Django Admin 

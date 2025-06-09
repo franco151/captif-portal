@@ -1,0 +1,37 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block object-tools-items %}
+    {{ block.super }}
+    <div style="margin: 10px 0; padding: 10px; background-color: #f8f9fa; border-radius: 4px;">
+        <h3 style="margin: 0 0 10px 0;">Statistiques</h3>
+        <p>Nombre total de paiements : {{ total_payments }}</p>
+        <p>Montant total des paiements réussis : {{ total_amount }} Ar</p>
+    </div>
+{% endblock %}
+
+{% block content %}
+    <div class="module">
+        <h2>Statistiques des Paiements</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Nombre de Paiements</th>
+                    <th>Montant Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stat in statistics.daily_stats %}
+                <tr>
+                    <td>{{ stat.day|date:"d/m/Y" }}</td>
+                    <td>{{ stat.count }}</td>
+                    <td>{{ stat.total_amount }} Ar</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {{ block.super }}
+{% endblock %} 

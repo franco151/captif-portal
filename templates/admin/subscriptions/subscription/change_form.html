@@ -1,0 +1,23 @@
+{% extends "admin/change_form.html" %}
+{% load i18n admin_urls %}
+
+{% block submit_buttons_bottom %}
+    {{ block.super }}
+    <div class="submit-row">
+        <input type="button" value="{% trans 'Imprimer le reçu' %}" onclick="printReceipt()" class="default" style="background: var(--primary-color);">
+    </div>
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <script>
+        function printReceipt() {
+            // Extraire l'ID de l'URL de manière plus robuste
+            const pathParts = window.location.pathname.split('/');
+            const subscriptionId = pathParts[pathParts.indexOf('subscription') + 1];
+            // Construire l'URL correctement
+            const printUrl = `/admin/subscriptions/subscription/${subscriptionId}/print/`;
+            window.open(printUrl, '_blank');
+        }
+    </script>
+{% endblock %} 

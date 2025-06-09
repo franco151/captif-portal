@@ -1,0 +1,372 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+{% load humanize %}
+
+{% block extrahead %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .stats-section {
+        margin: 15px 0;
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+    }
+    
+    .stats-section h3 {
+        margin: 0;
+        padding: 6px 12px;
+        font-size: 13px;
+        color: var(--body-fg);
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+        background: var(--body-bg);
+    }
+    
+    .stats-table th,
+    .stats-table td {
+        padding: 4px 12px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 13px;
+        color: var(--body-fg);
+    }
+    
+    .stats-table th {
+        font-weight: 600;
+        background: var(--header-bg);
+        color: var(--header-link-color);
+    }
+    
+    .stats-table .total-row {
+        font-weight: 600;
+        background: var(--header-bg);
+    }
+    
+    .stats-table .total-row td {
+        border-top: 2px solid var(--border-color);
+        color: var(--header-link-color);
+    }
+    
+    .printlink {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        color: var(--link-fg);
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid var(--link-fg);
+        transition: all 0.2s ease;
+    }
+    
+    .printlink i {
+        font-size: 14px;
+    }
+    
+    .printlink:hover {
+        background: var(--link-fg);
+        color: var(--link-selected-fg);
+    }
+    
+    .charts-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .chart-container {
+        flex: 1;
+        min-width: 300px;
+        padding: 10px;
+        background: var(--body-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        height: 300px;
+    }
+    
+    .chart-container h3 {
+        margin: 0 0 5px 0;
+        font-size: 14px;
+        color: var(--body-fg);
+    }
+    
+    .chart-canvas {
+        height: 250px;
+        position: relative;
+    }
+    
+    @media (max-width: 768px) {
+        .chart-container {
+            flex: 100%;
+        }
+        
+        .stats-table {
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .stats-table th,
+        .stats-table td {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        
+        .printlink {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block object-tools %}
+    {# Suppression du bouton d'ajout en laissant le bloc vide #}
+{% endblock %}
+
+{% block content %}
+    {% if statistics %}
+    <div class="module">
+        <h2>Tableau de Bord des Paiements</h2>
+
+        <!-- Graphiques -->
+        <div class="charts-wrapper">
+            <div class="chart-container">
+                <h3>Évolution des Paiements (7 derniers jours)</h3>
+                <div class="chart-canvas">
+                    <canvas id="paymentsChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h3>Répartition des Paiements par Jour</h3>
+                <div class="chart-canvas">
+                    <canvas id="dailyDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conteneur caché pour les données -->
+        <div id="chartData" style="display: none;" 
+             data-daily-stats='[{% for day in statistics.daily_stats %}{"date":"{{ day.day|date:"d/m" }}","amount":{{ day.total_amount|floatformat:0 }},"count":{{ day.count|default:"0" }}}{% if not forloop.last %},{% endif %}{% endfor %}]'>
+        </div>
+
+        <!-- Statistiques par Type d'Abonnement -->
+        <div class="stats-section">
+            <h3>Effectif par Plan d'Abonnement</h3>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Plan d'Abonnement</th>
+                        <th>Prix</th>
+                        <th>Effectif</th>
+                        <th>Montant Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subscription in statistics.subscription_stats %}
+                    <tr>
+                        <td>{{ subscription.name }}</td>
+                        <td>{{ subscription.price|intcomma }} Ar</td>
+                        <td>{{ subscription.count|intcomma }} abonnés</td>
+                        <td>{{ subscription.total_amount|default:"0"|intcomma }} Ar</td>
+                        <td>
+                            {% if subscription.payment_id %}
+                            <a href="{% url 'admin:print-payment-receipt' subscription.payment_id %}" 
+                               class="printlink" 
+                               title="Imprimer le reçu pour {{ subscription.name }}">
+                                <i class="fas fa-print"></i> Imprimer
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td colspan="2"><strong>Total</strong></td>
+                        <td><strong>{{ statistics.total_subscriptions|intcomma }} abonnés</strong></td>
+                        <td><strong>{{ statistics.total_subscription_amount|intcomma }} Ar</strong></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Statistiques par Mode de Paiement -->
+        <div class="stats-section">
+            <h3>Effectif par Mode de Paiement</h3>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Mode de Paiement</th>
+                        <th>Effectif</th>
+                        <th>Montant Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mode in statistics.payment_mode_stats %}
+                    <tr>
+                        <td>{{ mode.name }}</td>
+                        <td>{{ mode.count|intcomma }} paiements</td>
+                        <td>{{ mode.total_amount|intcomma }} Ar</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td><strong>Total</strong></td>
+                        <td><strong>{{ statistics.total_payments|intcomma }} paiements</strong></td>
+                        <td><strong>{{ statistics.total_amount|intcomma }} Ar</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Statistiques Journalières -->
+        <div class="stats-section">
+            <h3>Statistiques Journalières</h3>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Nombre de paiements</th>
+                        <th>Montant total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in statistics.daily_stats %}
+                    <tr>
+                        <td>{{ day.day|date:"d/m/Y" }}</td>
+                        <td>{{ day.count|intcomma }}</td>
+                        <td>{{ day.total_amount|intcomma }} Ar</td>
+                        <td>
+                            <a href="{% url 'admin:daily_receipts_redirect' date=day.day|date:'Y-m-d' %}" 
+                               class="printlink" 
+                               title="Imprimer les reçus du {{ day.day|date:'d/m/Y' }}">
+                                <i class="fas fa-print"></i> Imprimer
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="total-row">
+                        <td><strong>Total</strong></td>
+                        <td><strong>{{ statistics.total_payments|intcomma }}</strong></td>
+                        <td><strong>{{ statistics.total_amount|intcomma }} Ar</strong></td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Récupération des données depuis l'attribut data
+        const chartDataElement = document.getElementById('chartData');
+        const dailyStats = JSON.parse(chartDataElement.dataset.dailyStats || '[]');
+
+        // Configuration des graphiques
+        const chartConfig = {
+            type: 'line',
+            data: {
+                labels: dailyStats.map(stat => stat.date),
+                datasets: [{
+                    label: 'Montant des paiements (Ar)',
+                    data: dailyStats.map(stat => stat.amount),
+                    borderColor: '#417690',
+                    backgroundColor: 'rgba(65, 118, 144, 0.2)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Évolution des montants de paiement'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString() + ' Ar';
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        const distributionConfig = {
+            type: 'bar',
+            data: {
+                labels: dailyStats.map(stat => stat.date),
+                datasets: [{
+                    label: 'Nombre de paiements',
+                    data: dailyStats.map(stat => stat.count),
+                    backgroundColor: [
+                        'rgba(65, 118, 144, 0.8)',
+                        'rgba(121, 174, 200, 0.8)',
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(23, 162, 184, 0.8)',
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(220, 53, 69, 0.8)',
+                        'rgba(108, 117, 125, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Nombre de paiements par jour'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 20,
+                        ticks: {
+                            stepSize: 1,
+                            callback: function(value) {
+                                return value;
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Initialisation des graphiques
+        const paymentsChart = new Chart(
+            document.getElementById('paymentsChart'),
+            chartConfig
+        );
+
+        const distributionChart = new Chart(
+            document.getElementById('dailyDistributionChart'),
+            distributionConfig
+        );
+    </script>
+    {% endif %}
+
+    {{ block.super }}
+{% endblock %} 
