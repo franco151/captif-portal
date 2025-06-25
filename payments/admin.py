@@ -11,6 +11,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from django.utils import timezone
+from django.urls import reverse
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
@@ -27,6 +28,7 @@ class PaymentAdmin(admin.ModelAdmin):
         ]
         return custom_urls + urls
 
+    # Dans la méthode changelist_view, ajoutez les données pour les graphiques
     def changelist_view(self, request, extra_context=None):
         # Récupérer les statistiques avec des requêtes SQL directes
         with connection.cursor() as cursor:
@@ -42,12 +44,28 @@ class PaymentAdmin(admin.ModelAdmin):
             """)
             total_amount = cursor.fetchone()[0]
 
-        # Ajouter les statistiques au contexte
+        # Récupérer les statistiques complètes
+        stats = Payment.get_statistics()
+        
+        # Préparer les données pour les graphiques
+        import json
+        chart_labels = json.dumps([stat['day'].strftime('%d/%m/%Y') for stat in stats['daily_stats']])
+        chart_data = json.dumps([float(stat['total_amount']) for stat in stats['daily_stats']])
+        chart_counts = json.dumps([stat['count'] for stat in stats['daily_stats']])
+        
+        # Ajouter au contexte
         extra_context = extra_context or {}
         extra_context['total_payments'] = total_payments
         extra_context['total_amount'] = total_amount
+        extra_context['chart_labels'] = chart_labels
+        extra_context['chart_data'] = chart_data
+        extra_context['chart_counts'] = chart_counts
+        extra_context['statistics'] = stats
         
-        # Appeler la vue parente avec le contexte modifié
+        # Ajouter l'URL correcte au contexte
+        extra_context = extra_context or {}
+        extra_context['daily_receipts_url'] = '/api/daily-receipts-redirect/'
+        
         return super().changelist_view(request, extra_context=extra_context)
 
     def print_receipt(self, request, payment_id):
@@ -170,6 +188,39 @@ class PaymentAdmin(admin.ModelAdmin):
         elements.append(Spacer(1, 10))
         elements.append(daily_table)
         
+        # Ajoutez ces imports
+        import matplotlib.pyplot as plt
+        import io
+        from reportlab.lib.utils import ImageReader
+        
+        # Dans la méthode export_as_pdf, ajoutez après les tableaux
+        # Créer un graphique avec matplotlib
+        buffer = io.BytesIO()
+        plt.figure(figsize=(8, 4))
+        
+        # Données pour le graphique
+        dates = [stat['day'].strftime('%d/%m/%Y') for stat in stats['daily_stats']]
+        amounts = [float(stat['total_amount']) for stat in stats['daily_stats']]
+        
+        # Créer le graphique à barres
+        plt.bar(dates, amounts, color='skyblue')
+        plt.title('Montant total par jour')
+        plt.xlabel('Date')
+        plt.ylabel('Montant (Ar)')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        
+        # Sauvegarder le graphique dans le buffer
+        plt.savefig(buffer, format='png')
+        buffer.seek(0)
+        plt.close()
+        
+        # Ajouter le graphique au PDF
+        elements.append(Paragraph("Graphique des montants journaliers", styles['Heading2']))
+        elements.append(Spacer(1, 10))
+        elements.append(Image(ImageReader(buffer), width=6*inch, height=3*inch))
+        elements.append(Spacer(1, 20))
+        
         # Pied de page
         elements.append(Spacer(1, 30))
         footer_style = ParagraphStyle(
@@ -186,4 +237,4 @@ class PaymentAdmin(admin.ModelAdmin):
         # Générer le PDF
         doc.build(elements)
         return response
-    export_as_pdf.short_description = "Exporter les statistiques en PDF" 
+    export_as_pdf.short_description = "Exporter les statistiques en PDF"

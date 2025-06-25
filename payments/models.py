@@ -28,7 +28,7 @@ class Payment(models.Model):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     receipt_number = models.CharField(max_length=50, unique=True, blank=True, null=True)
-    payment_date = models.DateTimeField(auto_now_add=True)
+    # payment_date a été supprimé, utiliser created_at à la place
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -307,4 +307,4 @@ class Payment(models.Model):
             'total_subscription_amount': total_subscription_amount,
             'total_payments': total_payments,
             'total_amount': total_amount
-        } 
+        }

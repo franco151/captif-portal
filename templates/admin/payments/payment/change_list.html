@@ -248,7 +248,7 @@
                         <td>{{ day.count|intcomma }}</td>
                         <td>{{ day.total_amount|intcomma }} Ar</td>
                         <td>
-                            <a href="{% url 'admin:daily_receipts_redirect' date=day.day|date:'Y-m-d' %}" 
+                            <a href="{% url 'payments:daily_receipts_redirect' %}?date={{ day.day|date:'Y-m-d' }}" 
                                class="printlink" 
                                title="Imprimer les reçus du {{ day.day|date:'d/m/Y' }}">
                                 <i class="fas fa-print"></i> Imprimer
@@ -369,4 +369,4 @@
     {% endif %}
 
     {{ block.super }}
-{% endblock %} 
+{% endblock %}

@@ -142,6 +142,20 @@ def payment_detail(request, payment_id):
     return render(request, 'payments/payment_detail.html', {'payment': payment})
 
 @staff_member_required
+def daily_receipts_redirect_view(request):
+    """Vue de redirection pour les reçus quotidiens"""
+    from django.shortcuts import redirect
+    from datetime import date
+    
+    # Récupérer la date depuis les paramètres GET ou utiliser aujourd'hui
+    date_param = request.GET.get('date')
+    if date_param:
+        return redirect('payments:daily_receipts_pdf', date=date_param)
+    else:
+        today = date.today().strftime('%Y-%m-%d')
+        return redirect('payments:daily_receipts_pdf', date=today)
+
+@staff_member_required
 def print_daily_receipts_pdf(request, date):
     try:
         # Convertir la date string en objet date
@@ -181,4 +195,4 @@ def print_daily_receipts_pdf(request, date):
     response['Content-Disposition'] = f'attachment; filename="reçus_paiement_{target_date.strftime('%Y-%m-%d')}.pdf"'
     html.write_pdf(response)
 
-    return response 
+    return response

@@ -114,7 +114,7 @@
 
     <div class="receipt-info">
         <p><strong>Numéro de reçu:</strong> {{ payment.receipt_number }}</p>
-        <p><strong>Date:</strong> {{ payment.payment_date|naturaltime }}</p>
+        <p><strong>Date:</strong> {{ payment.created_at|naturaltime }}</p>
     </div>
 
     <div class="customer-info">
@@ -168,4 +168,4 @@
         <p>Contact: 0347249715</p>
     </div>
 </body>
-</html> 
+</html>

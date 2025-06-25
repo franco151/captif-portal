@@ -27,23 +27,23 @@
     </div>
 
     <script>
+        // Fonction pour mettre à jour l'icône du thème
+        function updateThemeIcon(isDark) {
+            const themeIcon = document.querySelector('.icon');
+            // Afficher l'icône du thème actuel (soleil pour clair, lune pour sombre)
+            themeIcon.textContent = isDark ? '☀️' : '🌙';
+        }
+
         // Fonction pour basculer le thème
         function toggleTheme() {
-            const html = document.documentElement;
             const isDark = document.body.classList.contains('dark-theme');
             
             // Mettre à jour le thème immédiatement
-            if (isDark) {
-                document.body.classList.remove('dark-theme');
-                localStorage.setItem('theme', 'light');
-            } else {
-                document.body.classList.add('dark-theme');
-                localStorage.setItem('theme', 'dark');
-            }
+            document.body.classList.toggle('dark-theme');
+            localStorage.setItem('theme', isDark ? 'light' : 'dark');
             
-            // Mettre à jour l'icône pour afficher le thème SUIVANT
-            const themeIcon = document.querySelector('.icon');
-            themeIcon.textContent = isDark ? '🌙' : '☀️';
+            // Mettre à jour l'icône pour afficher le thème actuel
+            updateThemeIcon(!isDark);
             
             // Désactiver le bouton pendant un court instant pour éviter les clics multiples
             const button = document.getElementById('themeToggle');
@@ -53,17 +53,18 @@
             }, 300);
         }
 
-        // Restaurer le thème au chargement
-        document.addEventListener('DOMContentLoaded', () => {
+        // Appliquer le thème initial avant le chargement complet du DOM
+        (function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             if (savedTheme === 'dark') {
                 document.body.classList.add('dark-theme');
             }
-            // Mettre à jour l'icône pour afficher le thème SUIVANT au chargement
-            const themeIcon = document.querySelector('.icon');
-            themeIcon.textContent = savedTheme === 'light' ? '🌙' : '☀️';
-        });
+            // Mettre à jour l'icône une fois que le DOM est chargé
+            document.addEventListener('DOMContentLoaded', () => {
+                updateThemeIcon(savedTheme === 'dark');
+            });
+        })();
     </script>
     {% block extra_js %}{% endblock %}
 </body>
-</html> 
+</html>

@@ -179,7 +179,11 @@
             </tr>
             <tr>
                 <th>Date et Heure</th>
-                <td>{{ payment.payment_date|date:"d/m/Y H:i" }}</td>
+                <td>{{ payment.created_at|date:"d/m/Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th>Commentaire</th>
+                <td>{{ payment.comment|default:"Aucun commentaire" }}</td>
             </tr>
         </table>
     </div>
@@ -192,4 +196,4 @@
         </p>
     </div>
 </body>
-</html> 
+</html>
