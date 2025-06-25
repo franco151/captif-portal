@@ -308,3 +308,38 @@ class Payment(models.Model):
             'total_payments': total_payments,
             'total_amount': total_amount
         }
+
+# Ajouter à la fin du fichier models.py
+class SMSTransaction(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'En attente'),
+        ('CONFIRMED', 'Confirmé'),
+        ('EXPIRED', 'Expiré'),
+        ('FAILED', 'Échoué'),
+    ]
+    
+    reference = models.CharField(max_length=50, unique=True)
+    phone_number = models.CharField(max_length=20)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    operator_message = models.TextField()  # Message complet de l'opérateur
+    plan = models.ForeignKey('subscriptions.Plan', on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()  # Expiration après 10 minutes
+    payment = models.OneToOneField(Payment, on_delete=models.CASCADE, null=True, blank=True)
+    
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+    
+    class Meta:
+        verbose_name = 'Transaction SMS'
+        verbose_name_plural = 'Transactions SMS'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"SMS Transaction {self.reference} - {self.phone_number}"

@@ -1,0 +1,15 @@
+# Créer /etc/systemd/system/sms-monitor.service
+[Unit]
+Description=SMS Payment Monitor
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/BestConnect
+ExecStart=/home/pi/BestConnect/venv/bin/python /home/pi/BestConnect/sms_handler.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

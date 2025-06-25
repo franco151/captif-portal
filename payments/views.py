@@ -1,17 +1,19 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.utils import timezone
 from datetime import timedelta
 import hashlib
-from .models import Payment
+import uuid  # Ajout manquant
+from .models import Payment, SMSTransaction  # Ajout de SMSTransaction
 from .serializers import PaymentSerializer
 from portal.models import WiFiCredentials
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.admin.views.decorators import staff_member_required
 from django.template.loader import render_to_string
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt  # Ajout manquant
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -27,7 +29,7 @@ import os
 from django.db.models.functions import TruncDate
 from datetime import datetime
 from django.db import models
-from django.db.models import Count
+from django.db.models import Count, Sum
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()
@@ -196,3 +198,120 @@ def print_daily_receipts_pdf(request, date):
     html.write_pdf(response)
 
     return response
+
+
+# Ajouter ces nouvelles vues API
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def initiate_sms_payment(request):
+    """Initier un paiement SMS - appelé depuis React"""
+    try:
+        plan_id = request.data.get('plan_id')
+        phone_number = request.data.get('phone_number')
+        
+        plan = get_object_or_404(Plan, id=plan_id, is_active=True)
+        
+        # Créer une transaction SMS en attente
+        sms_transaction = SMSTransaction.objects.create(
+            phone_number=phone_number,
+            amount=plan.price,
+            plan=plan,
+            reference=f"REF{uuid.uuid4().hex[:8].upper()}",
+            operator_message="En attente de paiement",
+            status='PENDING'
+        )
+        
+        return Response({
+            'success': True,
+            'transaction_id': sms_transaction.id,
+            'reference': sms_transaction.reference,
+            'amount': sms_transaction.amount,
+            'ussd_code': f"*182*1*1*{sms_transaction.amount}*{sms_transaction.reference}#",
+            'instructions': f"Composez *182*1*1*{sms_transaction.amount}*{sms_transaction.reference}# sur votre téléphone"
+        })
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def check_payment_status(request, transaction_id):
+    """Vérifier le statut d'une transaction - polling depuis React"""
+    try:
+        transaction = get_object_or_404(SMSTransaction, id=transaction_id)
+        
+        if transaction.is_expired():
+            transaction.status = 'EXPIRED'
+            transaction.save()
+            
+        response_data = {
+            'status': transaction.status,
+            'reference': transaction.reference
+        }
+        
+        # Si confirmé, retourner les credentials WiFi
+        if transaction.status == 'CONFIRMED' and transaction.payment:
+            credentials = transaction.payment.wificredentials
+            response_data.update({
+                'wifi_credentials': {
+                    'username': credentials.username,
+                    'password': credentials.password,
+                    'qr_code': credentials.get_qr_code_base64(),
+                    'expires_at': credentials.expires_at.isoformat()
+                }
+            })
+            
+        return Response(response_data)
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+@api_view(['POST'])
+@csrf_exempt
+def process_sms_webhook(request):
+    """Webhook pour traiter les SMS de confirmation de l'opérateur"""
+    try:
+        # Données du SMS reçu par le modem
+        sms_data = request.data
+        reference = sms_data.get('reference')
+        phone_number = sms_data.get('phone_number')
+        amount = sms_data.get('amount')
+        
+        # Trouver la transaction correspondante
+        transaction = SMSTransaction.objects.get(
+            reference=reference,
+            phone_number=phone_number,
+            status='PENDING'
+        )
+        
+        if not transaction.is_expired() and float(amount) == float(transaction.amount):
+            # Créer le paiement
+            payment = Payment.objects.create(
+                user_id=1,  # Utilisateur anonyme ou système
+                plan=transaction.plan,
+                amount=transaction.amount,
+                payment_method='MOBILE_MONEY',
+                phone_number=transaction.phone_number,
+                status='SUCCESS'
+            )
+            
+            # Générer les credentials WiFi
+            credentials = WiFiCredentials.objects.create(
+                payment=payment,
+                expires_at=timezone.now() + timedelta(days=transaction.plan.get_duration_in_days())
+            )
+            
+            # Mettre à jour la transaction
+            transaction.status = 'CONFIRMED'
+            transaction.payment = payment
+            transaction.save()
+            
+            return Response({'success': True})
+        else:
+            transaction.status = 'FAILED'
+            transaction.save()
+            return Response({'error': 'Transaction invalide'}, status=400)
+            
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
