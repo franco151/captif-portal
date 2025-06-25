@@ -30,36 +30,52 @@
         // Fonction pour mettre à jour l'icône du thème
         function updateThemeIcon(isDark) {
             const themeIcon = document.querySelector('.icon');
-            // Afficher l'icône du thème actuel (soleil pour clair, lune pour sombre)
-            themeIcon.textContent = isDark ? '☀️' : '🌙';
+            if (themeIcon) {
+                themeIcon.textContent = isDark ? '☀️' : '🌙';
+            }
         }
 
-        // Fonction pour basculer le thème
+        // Fonction pour basculer le thème - SEULEMENT 2 ÉTATS
         function toggleTheme() {
             const isDark = document.body.classList.contains('dark-theme');
             
-            // Mettre à jour le thème immédiatement
-            document.body.classList.toggle('dark-theme');
-            localStorage.setItem('theme', isDark ? 'light' : 'dark');
+            // Nettoyer TOUTES les classes de thème
+            document.body.className = document.body.className.replace(/\b(dark-theme|light-theme|auto-theme)\b/g, '');
             
-            // Mettre à jour l'icône pour afficher le thème actuel
-            updateThemeIcon(!isDark);
+            if (isDark) {
+                // Passer au thème clair (pas de classe)
+                localStorage.setItem('theme', 'light');
+                updateThemeIcon(false);
+            } else {
+                // Passer au thème sombre
+                document.body.classList.add('dark-theme');
+                localStorage.setItem('theme', 'dark');
+                updateThemeIcon(true);
+            }
             
-            // Désactiver le bouton pendant un court instant pour éviter les clics multiples
+            // Désactiver le bouton pendant la transition
             const button = document.getElementById('themeToggle');
-            button.disabled = true;
-            setTimeout(() => {
-                button.disabled = false;
-            }, 300);
+            if (button) {
+                button.disabled = true;
+                setTimeout(() => {
+                    button.disabled = false;
+                }, 300);
+            }
         }
 
-        // Appliquer le thème initial avant le chargement complet du DOM
+        // Appliquer le thème initial - SEULEMENT 2 OPTIONS
         (function() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
+            // Nettoyer TOUTES les classes de thème au démarrage
+            document.body.className = document.body.className.replace(/\b(dark-theme|light-theme|auto-theme)\b/g, '');
+            
+            const savedTheme = localStorage.getItem('theme');
+            
+            // SEULEMENT 2 cas possibles
             if (savedTheme === 'dark') {
                 document.body.classList.add('dark-theme');
             }
-            // Mettre à jour l'icône une fois que le DOM est chargé
+            // Sinon, c'est le thème clair par défaut (pas de classe)
+            
             document.addEventListener('DOMContentLoaded', () => {
                 updateThemeIcon(savedTheme === 'dark');
             });

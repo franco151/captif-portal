@@ -28,7 +28,37 @@
     --link-hover-color: #0056b3;
     --message-success-bg: #dff0d8;
     --message-success-fg: #468847;
+    --body-fg: #333;
+    --text-color: #333;
+    --background-color: #fff;
 }
+
+/* Thème sombre UNIQUEMENT */
+body.dark-theme {
+    --body-fg: #fff;
+    --text-color: #fff;
+    --background-color: #1a1a1a;
+    --primary-color: #79aec8;
+    --secondary-color: #417690;
+    --body-bg: #1a1a1a;
+    --border-color: #404040;
+    --module-bg: #2d2d2d;
+    --module-border: #404040;
+    --module-hover-bg: #3a3a3a;
+    --selected-row: #3a3a3a;
+    --link-fg: #79aec8;
+    --link-hover-color: #a8c8dc;
+    --message-success-bg: #1e4d2b;
+    --message-success-fg: #4ade80;
+}
+
+/* SUPPRIMER COMPLÈTEMENT ces lignes - SUPPRIMÉES */
+/* Les lignes suivantes ont été supprimées :
+body.light-theme,
+body.auto-theme {
+    // Ces règles créaient le 3ème thème
+}
+*/
 
 /* Style pour le menu de gauche */
 #header {
@@ -316,4 +346,4 @@
         color: rgba(0, 0, 0, 0.1);
         white-space: nowrap;
     }
-} 
+}
