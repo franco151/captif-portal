@@ -1,15 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import {
+  Box,
+  Button,
+  Container,
+  Typography,
+  Paper,
+  Grid,
+  Card,
+  CardContent,
+  TextField,
+  Alert,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
+  Link
+} from '@mui/material';
+import {
+  ConfirmationNumber as TicketIcon,
+  ShoppingCart as ShopIcon,
+  QrCodeScanner as QrIcon,
+  Login as LoginIcon,
+  Facebook as FacebookIcon,
+  Phone as PhoneIcon,
+  Support as SupportIcon
+} from '@mui/icons-material';
 import '../styles/CaptivePortal.css';
 
 const API_URL = 'http://localhost:8000/api';
 
 const CaptivePortal = () => {
+    const navigate = useNavigate();
+    const [sessionId, setSessionId] = useState(null);
+    const [remainingTime, setRemainingTime] = useState(null);
+    const [showAuthDialog, setShowAuthDialog] = useState(false);
+    const [authMethod, setAuthMethod] = useState('login'); // 'login' ou 'qr'
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [sessionId, setSessionId] = useState(null);
-    const [remainingTime, setRemainingTime] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -32,6 +64,8 @@ const CaptivePortal = () => {
             
             if (response.data.is_active) {
                 setRemainingTime(response.data.remaining_time);
+                // Rediriger vers la page de bienvenue
+                navigate('/success');
             } else {
                 handleLogout();
             }
@@ -47,13 +81,10 @@ const CaptivePortal = () => {
         setError('');
 
         try {
-            console.log('Tentative de connexion...');  // Debug log
             const response = await axios.post(`${API_URL}/captive-portal/login/`, {
                 username,
                 password
             });
-
-            console.log('Réponse reçue:', response.data);  // Debug log
 
             const { access_token, refresh_token, session_id, user } = response.data;
             
@@ -64,22 +95,21 @@ const CaptivePortal = () => {
             localStorage.setItem('user', JSON.stringify(user));
             
             setSessionId(session_id);
-            setRemainingTime(null);
+            setShowAuthDialog(false);
             
             // Configurer axios pour utiliser le token
             axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
             
+            // Rediriger vers la page de bienvenue
+            navigate('/success');
+            
         } catch (error) {
-            console.error('Erreur de connexion:', error);  // Debug log
+            console.error('Erreur de connexion:', error);
             if (error.response) {
-                // La requête a été faite et le serveur a répondu avec un code d'état
-                // qui est en dehors de la plage 2xx
                 setError(error.response.data.error || 'Une erreur est survenue lors de la connexion');
             } else if (error.request) {
-                // La requête a été faite mais aucune réponse n'a été reçue
                 setError('Impossible de se connecter au serveur. Veuillez vérifier votre connexion internet.');
             } else {
-                // Une erreur s'est produite lors de la configuration de la requête
                 setError('Une erreur est survenue lors de la connexion');
             }
         } finally {
@@ -111,62 +141,331 @@ const CaptivePortal = () => {
         }
     };
 
+    const handleTicketAuth = () => {
+        setShowAuthDialog(true);
+        setAuthMethod('login');
+    };
+
+    const handleBuyTicket = () => {
+        navigate('/plans');
+    };
+
+    const handleQRAuth = () => {
+        setAuthMethod('qr');
+        // Ici vous pouvez implémenter la logique de scan QR
+        alert('Fonctionnalité de scan QR à implémenter');
+    };
+
+    // Si l'utilisateur a une session active, rediriger vers success
     if (sessionId) {
-        return (
-            <div className="captive-portal-container">
-                <div className="portal-card">
-                    <h2>Session Active</h2>
-                    {remainingTime && (
-                        <p>Temps restant: {remainingTime} minutes</p>
-                    )}
-                    <button 
-                        className="logout-button"
-                        onClick={handleLogout}
-                    >
-                        Se déconnecter
-                    </button>
-                </div>
-            </div>
-        );
+        navigate('/success');
+        return null;
     }
 
     return (
-        <div className="captive-portal-container">
-            <div className="portal-card">
-                <h2>Connexion au Portail Captif</h2>
-                {error && <div className="error-message">{error}</div>}
-                <form onSubmit={handleLogin}>
-                    <div className="form-group">
-                        <label htmlFor="username">Nom d'utilisateur</label>
-                        <input
-                            type="text"
-                            id="username"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="password">Mot de passe</label>
-                        <input
-                            type="password"
-                            id="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <button 
-                        type="submit" 
-                        className="login-button"
-                        disabled={isLoading}
+        <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <Container maxWidth="md" sx={{ py: 4, flex: 1 }}>
+                <Paper 
+                    elevation={8} 
+                    sx={{ 
+                        p: 6, 
+                        textAlign: 'center',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        color: 'white',
+                        borderRadius: 4
+                    }}
+                >
+                    {/* Titre principal */}
+                    <Typography 
+                        variant="h1" 
+                        component="h1" 
+                        sx={{ 
+                            fontSize: { xs: '2.5rem', md: '3.5rem' },
+                            fontWeight: 'bold',
+                            mb: 2,
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                        }}
                     >
-                        {isLoading ? 'Connexion...' : 'Se connecter'}
-                    </button>
-                </form>
-            </div>
-        </div>
+                        BestConnect
+                    </Typography>
+
+                    {/* Message de bienvenue en Malagasy */}
+                    <Typography 
+                        variant="h5" 
+                        component="h2" 
+                        sx={{ 
+                            mb: 6,
+                            fontWeight: 300,
+                            opacity: 0.9,
+                            lineHeight: 1.4
+                        }}
+                    >
+                        Tonga soa eto amin'ny service de fournisseur connection internet illimité
+                    </Typography>
+
+                    {/* Boutons principaux */}
+                    <Grid container spacing={4} justifyContent="center">
+                        <Grid item xs={12} sm={6} md={5}>
+                            <Card 
+                                sx={{ 
+                                    height: '100%',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        transform: 'translateY(-8px)',
+                                        boxShadow: '0 12px 24px rgba(0,0,0,0.2)'
+                                    }
+                                }}
+                                onClick={handleTicketAuth}
+                            >
+                                <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                                    <TicketIcon 
+                                        sx={{ 
+                                            fontSize: 60, 
+                                            color: 'primary.main', 
+                                            mb: 2 
+                                        }} 
+                                    />
+                                    <Typography 
+                                        variant="h4" 
+                                        component="h3" 
+                                        sx={{ 
+                                            fontWeight: 'bold',
+                                            color: 'text.primary',
+                                            mb: 2
+                                        }}
+                                    >
+                                        Manana Ticket
+                                    </Typography>
+                                    <Typography 
+                                        variant="body1" 
+                                        color="text.secondary"
+                                        sx={{ lineHeight: 1.6 }}
+                                    >
+                                        Connectez-vous avec vos identifiants ou scannez votre QR code
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+
+                        <Grid item xs={12} sm={6} md={5}>
+                            <Card 
+                                sx={{ 
+                                    height: '100%',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        transform: 'translateY(-8px)',
+                                        boxShadow: '0 12px 24px rgba(0,0,0,0.2)'
+                                    }
+                                }}
+                                onClick={handleBuyTicket}
+                            >
+                                <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                                    <ShopIcon 
+                                        sx={{ 
+                                            fontSize: 60, 
+                                            color: 'secondary.main', 
+                                            mb: 2 
+                                        }} 
+                                    />
+                                    <Typography 
+                                        variant="h4" 
+                                        component="h3" 
+                                        sx={{ 
+                                            fontWeight: 'bold',
+                                            color: 'text.primary',
+                                            mb: 2
+                                        }}
+                                    >
+                                        Hividy Ticket
+                                    </Typography>
+                                    <Typography 
+                                        variant="body1" 
+                                        color="text.secondary"
+                                        sx={{ lineHeight: 1.6 }}
+                                    >
+                                        Découvrez nos forfaits et choisissez celui qui vous convient
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    </Grid>
+                </Paper>
+
+                {/* Dialog d'authentification */}
+                <Dialog 
+                    open={showAuthDialog} 
+                    onClose={() => setShowAuthDialog(false)}
+                    maxWidth="sm"
+                    fullWidth
+                >
+                    <DialogTitle sx={{ textAlign: 'center', pb: 1 }}>
+                        <Typography variant="h4" component="h2">
+                            Authentification
+                        </Typography>
+                    </DialogTitle>
+                    
+                    <DialogContent sx={{ pt: 2 }}>
+                        {/* Boutons de choix de méthode d'authentification */}
+                        <Box sx={{ mb: 3, display: 'flex', gap: 2, justifyContent: 'center' }}>
+                            <Button
+                                variant={authMethod === 'login' ? 'contained' : 'outlined'}
+                                startIcon={<LoginIcon />}
+                                onClick={() => setAuthMethod('login')}
+                            >
+                                Identifiants
+                            </Button>
+                            <Button
+                                variant={authMethod === 'qr' ? 'contained' : 'outlined'}
+                                startIcon={<QrIcon />}
+                                onClick={handleQRAuth}
+                            >
+                                QR Code
+                            </Button>
+                        </Box>
+
+                        {authMethod === 'login' && (
+                            <Box component="form" onSubmit={handleLogin}>
+                                {error && (
+                                    <Alert severity="error" sx={{ mb: 2 }}>
+                                        {error}
+                                    </Alert>
+                                )}
+                                
+                                <TextField
+                                    fullWidth
+                                    label="Nom d'utilisateur"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    margin="normal"
+                                    required
+                                    autoFocus
+                                />
+                                
+                                <TextField
+                                    fullWidth
+                                    label="Mot de passe"
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    margin="normal"
+                                    required
+                                />
+                            </Box>
+                        )}
+                    </DialogContent>
+                    
+                    <DialogActions sx={{ p: 3, pt: 1 }}>
+                        <Button 
+                            onClick={() => setShowAuthDialog(false)}
+                            disabled={isLoading}
+                        >
+                            Annuler
+                        </Button>
+                        {authMethod === 'login' && (
+                            <Button 
+                                onClick={handleLogin}
+                                variant="contained"
+                                disabled={isLoading || !username || !password}
+                                startIcon={isLoading ? <CircularProgress size={20} /> : null}
+                            >
+                                {isLoading ? 'Connexion...' : 'Se connecter'}
+                            </Button>
+                        )}
+                    </DialogActions>
+                </Dialog>
+            </Container>
+
+            {/* Footer avec informations de contact et service client */}
+            <Paper 
+                component="footer" 
+                elevation={3} 
+                sx={{ 
+                    mt: 'auto',
+                    py: 3,
+                    px: 2,
+                    backgroundColor: '#2c3e50',
+                    color: 'white'
+                }}
+            >
+                <Container maxWidth="lg">
+                    <Grid container spacing={3} alignItems="center">
+                        {/* Section Service Client */}
+                        <Grid item xs={12} md={4}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <SupportIcon sx={{ mr: 1, color: '#3498db' }} />
+                                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    Service Client
+                                </Typography>
+                            </Box>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                En cas de panne, problème ou question
+                            </Typography>
+                        </Grid>
+
+                        {/* Section Contact Téléphone */}
+                        <Grid item xs={12} md={4}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <PhoneIcon sx={{ mr: 1, color: '#27ae60' }} />
+                                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    Contact
+                                </Typography>
+                            </Box>
+                            <Link 
+                                href="tel:+261347249715" 
+                                sx={{ 
+                                    color: 'white', 
+                                    textDecoration: 'none',
+                                    '&:hover': { textDecoration: 'underline' }
+                                }}
+                            >
+                                <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                                    034 72 497 15
+                                </Typography>
+                            </Link>
+                            <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                Disponible 24h/24 et 7j/7
+                            </Typography>
+                        </Grid>
+
+                        {/* Section Facebook */}
+                        <Grid item xs={12} md={4}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <FacebookIcon sx={{ mr: 1, color: '#3b5998' }} />
+                                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    Facebook
+                                </Typography>
+                            </Box>
+                            <Link 
+                                href="https://facebook.com/BestConnect-FARAFANGANA" 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                sx={{ 
+                                    color: 'white', 
+                                    textDecoration: 'none',
+                                    '&:hover': { textDecoration: 'underline' }
+                                }}
+                            >
+                                <Typography variant="body1">
+                                    BestConnect FARAFANGANA
+                                </Typography>
+                            </Link>
+                        </Grid>
+                    </Grid>
+
+                    <Divider sx={{ my: 2, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+                    
+                    {/* Copyright */}
+                    <Box sx={{ textAlign: 'center' }}>
+                        <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                            © 2025 BestConnect FARAFANGANA. Tous droits réservés.
+                        </Typography>
+                    </Box>
+                </Container>
+            </Paper>
+        </Box>
     );
 };
 
-export default CaptivePortal; 
+export default CaptivePortal;

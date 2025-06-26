@@ -4,7 +4,7 @@ from .models import Plan, Subscription
 class PlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Plan
-        fields = ('id', 'name', 'description', 'duration_hours', 'price', 'is_active')
+        fields = ('id', 'name', 'description', 'duration', 'duration_unit', 'price', 'is_active')
 
 class SubscriptionSerializer(serializers.ModelSerializer):
     plan = PlanSerializer(read_only=True)
@@ -17,4 +17,4 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = ('id', 'user', 'plan', 'plan_id', 'start_date', 'end_date', 'status', 'created_at')
-        read_only_fields = ('id', 'user', 'start_date', 'end_date', 'status', 'created_at') 
+        read_only_fields = ('id', 'user', 'start_date', 'end_date', 'status', 'created_at')

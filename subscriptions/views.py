@@ -8,8 +8,8 @@ from .serializers import PlanSerializer, SubscriptionSerializer
 from django.shortcuts import render, get_object_or_404
 from django.template.loader import render_to_string
 from django.http import HttpResponse, Http404
-from django.conf import settings # Import settings
-import logging # Import logging
+from django.conf import settings
+import logging
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -17,7 +17,16 @@ logger = logging.getLogger(__name__)
 class PlanViewSet(viewsets.ModelViewSet):
     queryset = Plan.objects.filter(is_active=True)
     serializer_class = PlanSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    # Permettre l'accès public aux plans pour le portail captif
+    permission_classes = [permissions.AllowAny]
+    
+    # Limiter aux opérations de lecture seule pour les utilisateurs non authentifiés
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
 class SubscriptionViewSet(viewsets.ModelViewSet):
     serializer_class = SubscriptionSerializer
@@ -98,5 +107,5 @@ def print_subscription_receipt(request, object_id):
         response['Content-Type'] = 'text/html'
         return response
     except Exception as e:
-        logger.error(f"Error generating receipt for object_id {object_id}: {e}")
-        raise Http404(f"Impossible de générer le reçu pour l'identifiant {object_id} : {str(e)}")
+        logger.error(f"Erreur lors de l'impression du reçu: {e}")
+        raise Http404("Reçu non trouvé")
