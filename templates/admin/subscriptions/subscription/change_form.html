@@ -4,20 +4,32 @@
 {% block submit_buttons_bottom %}
     {{ block.super }}
     <div class="submit-row">
-        <input type="button" value="{% trans 'Imprimer le reçu' %}" onclick="printReceipt()" class="default" style="background: var(--primary-color);">
+        <input type="button" value="{% trans 'Télécharger le reçu PDF' %}" onclick="downloadReceipt()" class="default" style="background: var(--primary-color); margin-left: 10px;">
     </div>
 {% endblock %}
 
 {% block extrahead %}
     {{ block.super }}
     <script>
-        function printReceipt() {
+        function downloadReceipt() {
             // Extraire l'ID de l'URL de manière plus robuste
             const pathParts = window.location.pathname.split('/');
             const subscriptionId = pathParts[pathParts.indexOf('subscription') + 1];
-            // Construire l'URL correctement
-            const printUrl = `/admin/subscriptions/subscription/${subscriptionId}/print/`;
-            window.open(printUrl, '_blank');
+            
+            if (subscriptionId && subscriptionId !== 'add') {
+                // Construire l'URL correctement
+                const printUrl = `/admin/subscriptions/subscription/${subscriptionId}/print/`;
+                
+                // Créer un lien temporaire pour forcer le téléchargement
+                const link = document.createElement('a');
+                link.href = printUrl;
+                link.download = `recu_abonnement_${subscriptionId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Veuillez d\'abord sauvegarder l\'abonnement avant d\'imprimer le reçu.');
+            }
         }
     </script>
-{% endblock %} 
+{% endblock %}

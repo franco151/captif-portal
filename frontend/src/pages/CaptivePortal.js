@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import QrScanner from 'react-qr-scanner';
 import {
   Box,
   Button,
@@ -18,7 +19,8 @@ import {
   DialogContent,
   DialogActions,
   Divider,
-  Link
+  Link,
+  Snackbar
 } from '@mui/material';
 import {
   ConfirmationNumber as TicketIcon,
@@ -27,33 +29,73 @@ import {
   Login as LoginIcon,
   Facebook as FacebookIcon,
   Phone as PhoneIcon,
-  Support as SupportIcon
+  Support as SupportIcon,
+  Close as CloseIcon,
+  Warning as WarningIcon
 } from '@mui/icons-material';
 import '../styles/CaptivePortal.css';
 
 const API_URL = 'http://localhost:8000/api';
 
+// SUPPRIMER COMPLÈTEMENT ce bloc d'imports dupliqués (lignes 40-56 environ) :
+// import {
+//   Box,
+//   Button,
+//   Container,
+//   Typography,
+//   Paper,
+//   Grid,
+//   Card,
+//   CardContent,
+//   TextField,
+//   Alert,
+//   CircularProgress,
+//   Dialog,
+//   DialogTitle,
+//   DialogContent,
+//   DialogActions,
+//   Divider,
+//   Link
+// } from '@mui/material';
+
 const CaptivePortal = () => {
     const navigate = useNavigate();
     const [sessionId, setSessionId] = useState(null);
-    const [remainingTime, setRemainingTime] = useState(null);
     const [showAuthDialog, setShowAuthDialog] = useState(false);
-    const [authMethod, setAuthMethod] = useState('login'); // 'login' ou 'qr'
+    const [authMethod, setAuthMethod] = useState('login');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showQRScanner, setShowQRScanner] = useState(false);
+    const [qrScanError, setQrScanError] = useState('');
+    // Nouveaux états pour l'alerte d'appareil
+    const [showDeviceAlert, setShowDeviceAlert] = useState(false);
+    const [deviceAlertMessage, setDeviceAlertMessage] = useState('');
 
-    useEffect(() => {
-        // Vérifier si une session existe déjà
-        const storedSessionId = localStorage.getItem('sessionId');
-        const storedToken = localStorage.getItem('accessToken');
-        
-        if (storedSessionId && storedToken) {
-            setSessionId(storedSessionId);
-            checkSessionStatus(storedSessionId, storedToken);
+    // Définir handleLogout avant son utilisation
+    const handleLogout = async () => {
+        try {
+            const token = localStorage.getItem('accessToken');
+            const sessionId = localStorage.getItem('sessionId');
+            
+            if (token && sessionId) {
+                await axios.post(`${API_URL}/captive-portal/logout/`, 
+                    { session_id: sessionId },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            }
+        } catch (error) {
+            console.error('Erreur lors de la déconnexion:', error);
+        } finally {
+            // Nettoyer le stockage local
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('sessionId');
+            setSessionId(null);
+            delete axios.defaults.headers.common['Authorization'];
         }
-    }, []);
+    };
 
     const checkSessionStatus = async (sessionId, token) => {
         try {
@@ -63,8 +105,6 @@ const CaptivePortal = () => {
             });
             
             if (response.data.is_active) {
-                setRemainingTime(response.data.remaining_time);
-                // Rediriger vers la page de bienvenue
                 navigate('/success');
             } else {
                 handleLogout();
@@ -75,15 +115,60 @@ const CaptivePortal = () => {
         }
     };
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
+    useEffect(() => {
+        // Vérifier si une session existe déjà
+        const storedSessionId = localStorage.getItem('sessionId');
+        const storedToken = localStorage.getItem('accessToken');
+        
+        if (storedSessionId && storedToken) {
+            setSessionId(storedSessionId);
+            checkSessionStatus(storedSessionId, storedToken);
+        }
+    }, [checkSessionStatus]); // Ajouter checkSessionStatus aux dépendances
+
+    const generateDeviceFingerprint = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('Device fingerprint', 2, 2);
+        
+        const fingerprint = [
+            navigator.userAgent,
+            navigator.language,
+            window.screen.width + 'x' + window.screen.height, // Correction ici
+            new Date().getTimezoneOffset(),
+            canvas.toDataURL()
+        ].join('|');
+        
+        // Générer un hash simple
+        let hash = 0;
+        for (let i = 0; i < fingerprint.length; i++) {
+            const char = fingerprint.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        
+        return Math.abs(hash).toString(16);
+    };
+    
+    // Modifier la fonction handleLogin
+    const handleLogin = async () => {
+        if (!username || !password) {
+            setError('Veuillez remplir tous les champs');
+            return;
+        }
+    
         setIsLoading(true);
         setError('');
-
+    
         try {
+            const deviceFingerprint = generateDeviceFingerprint();
+            
             const response = await axios.post(`${API_URL}/captive-portal/login/`, {
                 username,
-                password
+                password,
+                mac_address: deviceFingerprint
             });
 
             const { access_token, refresh_token, session_id, user } = response.data;
@@ -106,7 +191,14 @@ const CaptivePortal = () => {
         } catch (error) {
             console.error('Erreur de connexion:', error);
             if (error.response) {
-                setError(error.response.data.error || 'Une erreur est survenue lors de la connexion');
+                // Vérifier si c'est l'erreur de device déjà utilisé
+                if (error.response.data.error === 'DEVICE_ALREADY_USED') {
+                    setDeviceAlertMessage(error.response.data.message);
+                    setShowDeviceAlert(true);
+                    setShowAuthDialog(false); // Fermer le dialog de connexion
+                } else {
+                    setError(error.response.data.error || 'Une erreur est survenue lors de la connexion');
+                }
             } else if (error.request) {
                 setError('Impossible de se connecter au serveur. Veuillez vérifier votre connexion internet.');
             } else {
@@ -117,31 +209,7 @@ const CaptivePortal = () => {
         }
     };
 
-    const handleLogout = async () => {
-        try {
-            const token = localStorage.getItem('accessToken');
-            const sessionId = localStorage.getItem('sessionId');
-            
-            if (token && sessionId) {
-                await axios.post(`${API_URL}/captive-portal/logout/`, 
-                    { session_id: sessionId },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-            }
-        } catch (error) {
-            console.error('Erreur lors de la déconnexion:', error);
-        } finally {
-            // Nettoyer le stockage local
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-            localStorage.removeItem('sessionId');
-            setSessionId(null);
-            setRemainingTime(null);
-            delete axios.defaults.headers.common['Authorization'];
-        }
-    };
-
-    const handleTicketAuth = () => {
+    const handleTicketAuth = async () => {
         setShowAuthDialog(true);
         setAuthMethod('login');
     };
@@ -152,8 +220,51 @@ const CaptivePortal = () => {
 
     const handleQRAuth = () => {
         setAuthMethod('qr');
-        // Ici vous pouvez implémenter la logique de scan QR
-        alert('Fonctionnalité de scan QR à implémenter');
+        setShowQRScanner(true);
+        setError('');
+        setQrScanError('');
+    };
+
+    const handleQRScan = (data) => {
+        if (data) {
+            try {
+                // Le QR code devrait contenir les données au format JSON
+                const credentials = JSON.parse(data);
+                
+                if (credentials.username && credentials.password) {
+                    setUsername(credentials.username);
+                    setPassword(credentials.password);
+                    setShowQRScanner(false);
+                    
+                    // Utiliser handleLogin au lieu d'authenticateUser
+                    handleLogin({ preventDefault: () => {} });
+                } else {
+                    setQrScanError('QR code invalide : format de données incorrect');
+                }
+            } catch (error) {
+                // Si ce n'est pas du JSON, essayer de parser comme "username:password"
+                const parts = data.split(':');
+                if (parts.length === 2) {
+                    const [user, pass] = parts;
+                    setUsername(user);
+                    setPassword(pass);
+                    setShowQRScanner(false);
+                    handleLogin({ preventDefault: () => {} });
+                } else {
+                    setQrScanError('QR code invalide : format non reconnu');
+                }
+            }
+        }
+    };
+
+    const handleQRError = (error) => {
+        console.error('Erreur de scan QR:', error);
+        setQrScanError('Erreur lors du scan du QR code. Vérifiez votre caméra.');
+    };
+
+    const handleCloseDeviceAlert = () => {
+        setShowDeviceAlert(false);
+        setDeviceAlertMessage('');
     };
 
     // Si l'utilisateur a une session active, rediriger vers success
@@ -312,7 +423,10 @@ const CaptivePortal = () => {
                             <Button
                                 variant={authMethod === 'login' ? 'contained' : 'outlined'}
                                 startIcon={<LoginIcon />}
-                                onClick={() => setAuthMethod('login')}
+                                onClick={() => {
+                                    setAuthMethod('login');
+                                    setShowQRScanner(false);
+                                }}
                             >
                                 Identifiants
                             </Button>
@@ -354,15 +468,67 @@ const CaptivePortal = () => {
                                 />
                             </Box>
                         )}
+
+                        {authMethod === 'qr' && showQRScanner && (
+                            <Box sx={{ textAlign: 'center' }}>
+                                <Typography variant="h6" sx={{ mb: 2 }}>
+                                    Scannez le QR code de votre reçu
+                                </Typography>
+                                
+                                {qrScanError && (
+                                    <Alert severity="error" sx={{ mb: 2 }}>
+                                        {qrScanError}
+                                    </Alert>
+                                )}
+                                
+                                <Box sx={{ 
+                                    width: '100%', 
+                                    maxWidth: 400, 
+                                    mx: 'auto',
+                                    border: '2px solid #ddd',
+                                    borderRadius: 2,
+                                    overflow: 'hidden'
+                                }}>
+                                    <QrScanner
+                                        delay={300}
+                                        onError={handleQRError}
+                                        onScan={handleQRScan}
+                                        style={{ width: '100%' }}
+                                        constraints={{
+                                            video: {
+                                                facingMode: 'environment' // Caméra arrière
+                                            }
+                                        }}
+                                    />
+                                </Box>
+                                
+                                <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
+                                    Positionnez le QR code dans le cadre pour le scanner
+                                </Typography>
+                            </Box>
+                        )}
                     </DialogContent>
                     
                     <DialogActions sx={{ p: 3, pt: 1 }}>
                         <Button 
-                            onClick={() => setShowAuthDialog(false)}
+                            onClick={() => {
+                                setShowAuthDialog(false);
+                                setShowQRScanner(false);
+                            }}
                             disabled={isLoading}
                         >
                             Annuler
                         </Button>
+                        
+                        {authMethod === 'qr' && showQRScanner && (
+                            <Button 
+                                onClick={() => setShowQRScanner(false)}
+                                startIcon={<CloseIcon />}
+                            >
+                                Fermer Scanner
+                            </Button>
+                        )}
+                        
                         {authMethod === 'login' && (
                             <Button 
                                 onClick={handleLogin}
@@ -468,4 +634,6 @@ const CaptivePortal = () => {
     );
 };
 
+// DELETE EVERYTHING BELOW THIS LINE - Remove lines 642-718
+// All the code from line 642 onwards should be completely deleted
 export default CaptivePortal;

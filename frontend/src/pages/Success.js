@@ -10,14 +10,17 @@ import {
   Card,
   CardContent,
   Grid,
-  Chip
+  Chip,
+  Alert
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
   Wifi as WifiIcon,
   Speed as SpeedIcon,
   AccessTime as TimeIcon,
-  ExitToApp as LogoutIcon
+  ExitToApp as LogoutIcon,
+  CalendarToday as CalendarIcon,
+  Warning as WarningIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -29,19 +32,27 @@ function Success() {
   const [userInfo, setUserInfo] = useState(null);
   const [sessionInfo, setSessionInfo] = useState(null);
   const [remainingTime, setRemainingTime] = useState(null);
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
+  const [hasChecked, setHasChecked] = useState(false);
 
   useEffect(() => {
+    if (hasChecked) return; // Éviter les vérifications multiples
+    
     const checkSession = async () => {
       try {
+        setHasChecked(true);
         const sessionId = localStorage.getItem('sessionId');
         const token = localStorage.getItem('accessToken');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        console.log('Debug - Checking session...', { sessionId, token });
         
         if (!sessionId || !token) {
-          navigate('/portal');
+          console.log('Debug - No session found, redirecting...');
+          navigate('/portal', { replace: true });
           return;
         }
 
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
         setUserInfo(user);
         
         // Vérifier le statut de la session
@@ -50,14 +61,20 @@ function Success() {
           headers: { Authorization: `Bearer ${token}` }
         });
         
+        console.log('Debug - API response:', response.data);
+        
         if (response.data.is_active) {
+          console.log('Session data:', response.data);
           setSessionInfo(response.data);
           setRemainingTime(response.data.remaining_time);
+          setSubscriptionInfo(response.data.subscription);
         } else {
+          console.log('Debug - Session not active, redirecting to portal');
           navigate('/portal');
         }
       } catch (error) {
         console.error('Erreur lors de la vérification:', error);
+        console.log('Debug - Error occurred, redirecting to portal');
         navigate('/portal');
       } finally {
         setLoading(false);
@@ -65,11 +82,7 @@ function Success() {
     };
 
     checkSession();
-    
-    // Mettre à jour le temps restant toutes les minutes
-    const interval = setInterval(checkSession, 60000);
-    return () => clearInterval(interval);
-  }, [navigate]);
+  }, [navigate, hasChecked]);
 
   const handleLogout = async () => {
     try {
@@ -107,6 +120,23 @@ function Success() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
+      {/* Alerte d'expiration si nécessaire */}
+      {subscriptionInfo?.is_expired && (
+        <Alert 
+          severity="error" 
+          icon={<WarningIcon />}
+          sx={{ mb: 3, fontWeight: 'bold' }}
+        >
+          <Typography variant="h6" component="div">
+            Ticket Expiré
+          </Typography>
+          <Typography variant="body2">
+            Votre abonnement a expiré le {new Date(subscriptionInfo.end_date).toLocaleDateString('fr-FR')}. 
+            Les tickets expirés ne sont plus autorisés à se connecter. Veuillez acheter un nouveau ticket.
+          </Typography>
+        </Alert>
+      )}
+
       <Paper 
         elevation={8} 
         sx={{ 
@@ -235,10 +265,10 @@ function Success() {
           </Grid>
           <Grid item xs={12} sm={6}>
             <Typography variant="body2" color="text.secondary">
-              Adresse MAC
+              Identification de l'appareil
             </Typography>
             <Typography variant="body1" fontWeight="bold">
-              {sessionInfo?.mac_address || 'XX:XX:XX:XX:XX:XX'}
+              {sessionInfo?.mac_address || 'Non disponible'}
             </Typography>
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -246,9 +276,40 @@ function Success() {
               Heure de connexion
             </Typography>
             <Typography variant="body1" fontWeight="bold">
-              {sessionInfo?.start_time ? new Date(sessionInfo.start_time).toLocaleTimeString() : 'Maintenant'}
+              {sessionInfo?.start_time ? 
+                new Date(sessionInfo.start_time).toLocaleString('fr-FR', {
+                  year: 'numeric',
+                  month: '2-digit', 
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                }) : 'Maintenant'
+              }
             </Typography>
           </Grid>
+          {/* Nouvelles informations d'abonnement */}
+          {subscriptionInfo && (
+            <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                Informations d'abonnement
+              </Typography>
+              <Typography variant="body1">
+                <strong>Plan:</strong> {subscriptionInfo.plan_name}
+              </Typography>
+              <Typography variant="body1" color={subscriptionInfo.is_expired ? 'error' : 'inherit'}>
+                <strong>Date d'expiration:</strong> {new Date(subscriptionInfo.end_date).toLocaleString('fr-FR')}
+                {subscriptionInfo.is_expired && ' (Expiré)'}
+              </Typography>
+              {subscriptionInfo.is_expired && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  <Typography variant="body2">
+                    ⚠️ Votre ticket a expiré. L'accès ne sera pas autorisé.
+                  </Typography>
+                </Alert>
+              )}
+            </Paper>
+          )}
         </Grid>
       </Paper>
 
