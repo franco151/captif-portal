@@ -83,6 +83,24 @@ class PaymentService {
     }
   }
 
+  async verifyTransactionReference(reference, planId) {
+    try {
+      const response = await axios.post(
+        `${API_ENDPOINTS.API_BASE_URL}/payments/verify-reference/`,
+        {
+          reference: reference,
+          plan_id: planId
+        },
+        {
+          headers: authService.getAuthHeader(),
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
   handleError(error) {
     if (error.response) {
       return {
@@ -103,4 +121,4 @@ class PaymentService {
   }
 }
 
-export default new PaymentService(); 
+export default new PaymentService();
