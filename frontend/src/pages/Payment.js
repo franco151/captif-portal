@@ -35,7 +35,7 @@ import planService from '../services/plan.service';
 import paymentService from '../services/payment.service';
 import DownloadIcon from '@mui/icons-material/Download';
 
-const steps = ['Vérification', 'Paiement', 'Confirmation'];
+const steps = ['Vérification', 'Paiement', 'Ticket (Réçu)'];
 
 function Payment() {
   const navigate = useNavigate();
